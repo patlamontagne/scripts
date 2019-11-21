@@ -3,15 +3,19 @@ VERSION=1.0.1
 # add the following alias
 # alias wordpress='sudo bash ~/scripts/wordpress.sh'
 
-# Private key path
+# Private key path - comment to use password login
 SSH_KEY=~/.ssh/id_rsa
+
 # Projects dir
 PROJECT_ROOT=/mnt/c/dev/www/
 WIN_PROJECT_ROOT=C:/dev/www/
-# Hosts file path - set to `no` to skip
+
+# Hosts file path - comment to skip
 HOSTS_FILE=/mnt/c/WINDOWS/system32/drivers/etc/hosts
-# Apache vhosts file path - set to `no` to skip
-VHOSTS_FILE=no #/mnt/c/dev/etc/apache2/httpd.conf
+
+# Apache vhosts file path - comment to skip
+VHOSTS_FILE=/mnt/c/dev/etc/apache2/httpd.conf
+
 # top level domain for hosts & vhosts files
 TLD=.wp
 
@@ -107,6 +111,10 @@ parse_commandline "$@"
 handle_passed_args_count
 assign_positional_args
 
+if [[ -z "$SSH_KEY" ]] || [[ ! -f $SSH_KEY ]]
+then
+	echo -e "${red}SSH key undefined or file not found, aborting.${white}"
+fi
 
 # wordpress <directory> --sync=prod|staging
 if [[ $_arg_sync == 'prod' ]] || [[ $_arg_sync == 'staging' ]]
@@ -133,7 +141,7 @@ then
 		--include='web/app/uploads/***' \
 		--exclude='*' \
 		-e "ssh -i ${SSH_KEY}" \
-        "${PROJECT_ROOT}${_project_dir}/" \
+		"${PROJECT_ROOT}${_project_dir}/" \
 		"${HOST_USER}@${HOST_NAME}:app/"
 	die
 
@@ -149,7 +157,7 @@ URL=${_project_dir}${TLD}
 HOSTS_ENTRY="127.0.0.1      ${URL}"
 VHOSTS_ENTRY="
 <VirtualHost *:80>
-    DocumentRoot "${WIN_PROJECT_ROOT}${URL}/web"
+    DocumentRoot "${WIN_PROJECT_ROOT}${_project_dir}/web"
     ServerName ${URL}
     ServerAlias www.${URL}
     ErrorLog "${WIN_PROJECT_ROOT}httpd-logs/${URL}-error_log"
@@ -157,9 +165,11 @@ VHOSTS_ENTRY="
 </VirtualHost>
 "
 
-# seteup hosts file
-if [[ $HOSTS_FILE != no ]]
+# setup hosts file
+if [[ -z "$HOSTS_FILE" ]]
 then
+	echo -e "${green}Skipping hosts file...${white}"
+else
 	echo -e "${green}Adding to hosts file:${white}"
 	sudo -- sh -c "cat <<EOF >>${HOSTS_FILE}
 
@@ -170,8 +180,10 @@ ${HOSTS_ENTRY}  # auto wordpress"
 fi
 
 # setup vhosts file
-if [[ $VHOSTS_FILE != no ]]
+if [[ -z "$VHOSTS_FILE" ]]
 then
+	echo -e "${green}Skipping vhosts file...${white}"
+else
 	echo -e "${green}Adding to vhosts file:${white}"
 	sudo -- sh -c "cat <<EOF >>${VHOSTS_FILE}
 
