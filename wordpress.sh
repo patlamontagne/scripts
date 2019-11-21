@@ -1,17 +1,19 @@
 #!/bin/bash
-VERSION=1.0
+VERSION=1.0.1
 # add the following alias
 # alias wordpress='sudo bash ~/scripts/wordpress.sh'
 
 # Private key path
 SSH_KEY=~/.ssh/id_rsa
 # Projects dir
-PROJECT_DIR=/mnt/c/dev/www/
-WIN_PROJECT_DIR=C:/dev/www/
+PROJECT_ROOT=/mnt/c/dev/www/
+WIN_PROJECT_ROOT=C:/dev/www/
 # Hosts file path - set to `no` to skip
 HOSTS_FILE=/mnt/c/WINDOWS/system32/drivers/etc/hosts
 # Apache vhosts file path - set to `no` to skip
 VHOSTS_FILE=no #/mnt/c/dev/etc/apache2/httpd.conf
+# top level domain for hosts & vhosts files
+TLD=.wp
 
 
 # Defaults initialization
@@ -86,14 +88,14 @@ parse_commandline ()
 
 handle_passed_args_count ()
 {
-	_required_args_string="'domain'"
+	_required_args_string="'directory'"
 	test ${#_positionals[@]} -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 1 (namely: $_required_args_string), but got only ${#_positionals[@]}." 1
 	test ${#_positionals[@]} -le 1 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect exactly 1 (namely: $_required_args_string), but got ${#_positionals[@]} (the last one was: '${_positionals[*]: -1}')." 1
 }
 
 assign_positional_args ()
 {
-	_positional_names=('_arg_domain' )
+	_positional_names=('_project_dir' )
 
 	for (( ii = 0; ii < ${#_positionals[@]}; ii++))
 	do
@@ -106,11 +108,11 @@ handle_passed_args_count
 assign_positional_args
 
 
-# wordpress <domain> --sync=prod|staging
+# wordpress <directory> --sync=prod|staging
 if [[ $_arg_sync == 'prod' ]] || [[ $_arg_sync == 'staging' ]]
 then
 	# Loading env file
-	env_file=${PROJECT_DIR}${_arg_domain}/.env.${_arg_sync}
+	env_file=${PROJECT_ROOT}${_project_dir}/.env.${_arg_sync}
 	if [[ ! -f $env_file ]]
 	then
 		echo "${red}No ${yellow}$env_file${red}, aborting.${white}"
@@ -131,7 +133,7 @@ then
 		--include='web/app/uploads/***' \
 		--exclude='*' \
 		-e "ssh -i ${SSH_KEY}" \
-        "${PROJECT_DIR}${_arg_domain}/" \
+        "${PROJECT_ROOT}${_project_dir}/" \
 		"${HOST_USER}@${HOST_NAME}:app/"
 	die
 
@@ -142,17 +144,16 @@ then
 	die
 fi 
 
-# wordpress <domain>
-
-# setup local env
-HOSTS_ENTRY="127.0.0.1      $_arg_domain"
+# wordpress <directory>
+URL=${_project_dir}${TLD}
+HOSTS_ENTRY="127.0.0.1      ${URL}"
 VHOSTS_ENTRY="
 <VirtualHost *:80>
-    DocumentRoot "${WIN_PROJECT_DIR}${_arg_domain}/web"
-    ServerName $_arg_domain
-    ServerAlias www.$_arg_domain
-    ErrorLog "${WIN_PROJECT_DIR}httpd-logs/$_arg_domain-error_log"
-    CustomLog "${WIN_PROJECT_DIR}httpd-logs/$_arg_domain-access_log" common
+    DocumentRoot "${WIN_PROJECT_ROOT}${URL}/web"
+    ServerName ${URL}
+    ServerAlias www.${URL}
+    ErrorLog "${WIN_PROJECT_ROOT}httpd-logs/${URL}-error_log"
+    CustomLog "${WIN_PROJECT_ROOT}httpd-logs/${URL}-access_log" common
 </VirtualHost>
 "
 
@@ -181,11 +182,11 @@ fi
 
 # get boilerplate project
 echo -e "${green}Cloning https://gitlab.com/arsenalweb/new-project.git${white}"
-cd ${PROJECT_DIR}
-git clone https://gitlab.com/arsenalweb/new-project.git $_arg_domain
+cd ${PROJECT_ROOT}
+git clone https://gitlab.com/arsenalweb/new-project.git $_project_dir
 
 # deleting useless files
-cd $_arg_domain
+cd $_project_dir
 rm -rf .git
 rm -rf docs
 rm readme.md
