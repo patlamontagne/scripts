@@ -132,7 +132,7 @@ then
 	echo -e "${green}Syncing plugins & uploads to remote${white}"
 	echo -e "User: ${yellow}${HOST_USER}${white}"
 	echo -e "Host: ${yellow}${HOST_NAME}${white}"
-	rsync -am -v -r --progress \
+	rsync -avzh --progress \
 		--include='web/' \
 		--include='web/app/' \
 		--include='web/app/plugins/' \
@@ -141,8 +141,8 @@ then
 		--include='web/app/uploads/***' \
 		--exclude='*' \
 		-e "ssh -i ${SSH_KEY}" \
-		"${PROJECT_ROOT}${_project_dir}/" \
-		"${HOST_USER}@${HOST_NAME}:app/"
+        "${DOCUMENT_ROOT}${_arg_domain}/" \
+		"${HOST_USER//$'\r'}@${HOST_NAME//$'\r'}:app/"
 	die
 
 # --sync validation
