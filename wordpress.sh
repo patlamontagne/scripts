@@ -141,7 +141,7 @@ then
 		--include='web/app/uploads/***' \
 		--exclude='*' \
 		-e "ssh -i ${SSH_KEY}" \
-        "${DOCUMENT_ROOT}${_arg_domain}/" \
+        "${PROJECT_ROOT}${_project_dir}/" \
 		"${HOST_USER//$'\r'}@${HOST_NAME//$'\r'}:app/"
 	die
 
